@@ -1125,8 +1125,14 @@ controller_interface::return_type ControllerManager::update()
     if (is_controller_running(*loaded_controller.c)) {
       auto controller_ret = loaded_controller.c->update();
 
+
       int THIS_CONTROLLER_UPDATE_RATE = loaded_controller.info.update_rate;
-      int THIS_CONTROLLER_UPDATE_RATE = loaded_controller.c->get_update_rate();
+      THIS_CONTROLLER_UPDATE_RATE = loaded_controller.c->get_update_rate();
+
+      
+      RCLCPP_INFO(
+        get_logger(), "Ennyi a freki: '%d'",
+      THIS_CONTROLLER_UPDATE_RATE);
 
       if (controller_ret != controller_interface::return_type::OK) {
         ret = controller_ret;
