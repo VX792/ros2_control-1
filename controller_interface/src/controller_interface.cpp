@@ -64,6 +64,9 @@ const rclcpp_lifecycle::State & ControllerInterface::configure()
       case LifecycleNodeInterface::CallbackReturn::FAILURE:
         break;
     }
+
+     auto node = get_node();
+     node->declare_parameter("update_rate");
   }
   return lifecycle_state_;
 }
@@ -143,6 +146,11 @@ const rclcpp_lifecycle::State & ControllerInterface::shutdown()
 const rclcpp_lifecycle::State & ControllerInterface::get_current_state() const
 {
   return lifecycle_state_;
+}
+
+int ControllerInterface::get_update_rate() const
+{
+  return node_->get_parameter("update_rate").as_int();
 }
 
 void ControllerInterface::assign_interfaces(

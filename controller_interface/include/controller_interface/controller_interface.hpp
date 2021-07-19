@@ -130,7 +130,7 @@ public:
   const rclcpp_lifecycle::State & get_current_state() const;
 
   CONTROLLER_INTERFACE_PUBLIC
-  int get_update_rate(){ return 12; };
+  int get_update_rate() const;
 
 protected:
   std::vector<hardware_interface::LoanedCommandInterface> command_interfaces_;

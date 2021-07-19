@@ -1126,8 +1126,7 @@ controller_interface::return_type ControllerManager::update()
       auto controller_ret = loaded_controller.c->update();
 
 
-      int THIS_CONTROLLER_UPDATE_RATE = loaded_controller.info.update_rate;
-      THIS_CONTROLLER_UPDATE_RATE = loaded_controller.c->get_update_rate();
+      int THIS_CONTROLLER_UPDATE_RATE = loaded_controller.c->get_update_rate();
 
       
       RCLCPP_INFO(
