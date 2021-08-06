@@ -63,6 +63,8 @@ TEST_F(TestLoadController, load_and_configure_one_known_controller)
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE,
     abstract_test_controller.c->get_current_state().id());
+
+  EXPECT_EQ(0, abstract_test_controller.c->get_update_rate());
 }
 
 TEST_F(TestLoadController, load_and_configure_two_known_controllers)

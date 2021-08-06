@@ -33,6 +33,9 @@ ControllerInterface::init(const std::string & controller_name)
     rclcpp::NodeOptions().allow_undeclared_parameters(true));
   lifecycle_state_ = rclcpp_lifecycle::State(
     lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state_names::UNCONFIGURED);
+
+  node_->declare_parameter("update_rate", 0);
+
   return return_type::OK;
 }
 
@@ -44,6 +47,9 @@ ControllerInterface::init(const std::string & controller_name, rclcpp::NodeOptio
     node_options.allow_undeclared_parameters(true));
   lifecycle_state_ = rclcpp_lifecycle::State(
     lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, "unconfigured");
+
+  node_->declare_parameter("update_rate", 0);
+
   return return_type::OK;
 }
 
@@ -65,8 +71,7 @@ const rclcpp_lifecycle::State & ControllerInterface::configure()
         break;
     }
 
-     auto node = get_node();
-     node->declare_parameter("update_rate");
+    update_rate_ = node_->get_parameter("update_rate").as_int();
   }
   return lifecycle_state_;
 }
@@ -150,7 +155,7 @@ const rclcpp_lifecycle::State & ControllerInterface::get_current_state() const
 
 int ControllerInterface::get_update_rate() const
 {
-  return node_->get_parameter("update_rate").as_int();
+  return update_rate_;
 }
 
 void ControllerInterface::assign_interfaces(
