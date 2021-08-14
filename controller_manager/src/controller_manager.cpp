@@ -1119,22 +1119,28 @@ controller_interface::return_type ControllerManager::update()
     rt_controllers_wrapper_.update_and_get_used_by_rt_list();
 
   auto ret = controller_interface::return_type::OK;
+  int main_update_rate = 100;
+  update_loop_counter += 1;
+  update_loop_counter %= main_update_rate;
+
   for (auto loaded_controller : rt_controller_list) {
     // TODO(v-lopez) we could cache this information
     // https://github.com/ros-controls/ros2_control/issues/153
     if (is_controller_running(*loaded_controller.c)) {
-      auto controller_ret = loaded_controller.c->update();
 
-
-      int THIS_CONTROLLER_UPDATE_RATE = loaded_controller.c->get_update_rate();
-
-
+      int controller_update_rate = loaded_controller.c->get_update_rate();
+      bool controller_go = controller_update_rate == 0 ||
+        ((update_loop_counter % controller_update_rate) == 0);
       RCLCPP_INFO(
-        get_logger(), "Ennyi a freki: '%d'",
-        THIS_CONTROLLER_UPDATE_RATE);
+        get_logger(), "update_loop_counter: '%d ' controller_go: '%s ' controller_name: '%s '",
+        update_loop_counter, controller_go ? "True" : "False", loaded_controller.info.name.c_str());
 
-      if (controller_ret != controller_interface::return_type::OK) {
-        ret = controller_ret;
+      if (controller_go) {
+        auto controller_ret = loaded_controller.c->update();
+
+        if (controller_ret != controller_interface::return_type::OK) {
+          ret = controller_ret;
+        }
       }
     }
   }

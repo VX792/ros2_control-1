@@ -628,8 +628,8 @@ TEST_F(TestLoadController, switch_multiple_controllers)
 TEST_F(TestLoadController, can_set_and_get_non_default_update_rate)
 {
   auto controller_if = cm_->load_controller(
-      "test_controller_01",
-      test_controller::TEST_CONTROLLER_CLASS_NAME);
+    "test_controller_01",
+    test_controller::TEST_CONTROLLER_CLASS_NAME);
   ASSERT_NE(controller_if, nullptr);
 
   ASSERT_EQ(
