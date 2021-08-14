@@ -1120,8 +1120,8 @@ controller_interface::return_type ControllerManager::update()
 
   auto ret = controller_interface::return_type::OK;
   int main_update_rate = 100;
-  update_loop_counter += 1;
-  update_loop_counter %= main_update_rate;
+  update_loop_counter_ += 1;
+  update_loop_counter_ %= main_update_rate;
 
   for (auto loaded_controller : rt_controller_list) {
     // TODO(v-lopez) we could cache this information
@@ -1130,10 +1130,10 @@ controller_interface::return_type ControllerManager::update()
 
       int controller_update_rate = loaded_controller.c->get_update_rate();
       bool controller_go = controller_update_rate == 0 ||
-        ((update_loop_counter % controller_update_rate) == 0);
+        ((update_loop_counter_ % controller_update_rate) == 0);
       RCLCPP_INFO(
         get_logger(), "update_loop_counter: '%d ' controller_go: '%s ' controller_name: '%s '",
-        update_loop_counter, controller_go ? "True" : "False", loaded_controller.info.name.c_str());
+        update_loop_counter_, controller_go ? "True" : "False", loaded_controller.info.name.c_str());
 
       if (controller_go) {
         auto controller_ret = loaded_controller.c->update();
@@ -1216,6 +1216,10 @@ void ControllerManager::RTControllerListWrapper::wait_until_rt_not_using(
     }
     std::this_thread::sleep_for(sleep_period);
   }
+}
+
+int ControllerManager::get_update_rate() const {
+  return update_rate_;
 }
 
 }  // namespace controller_manager
