@@ -1119,9 +1119,8 @@ controller_interface::return_type ControllerManager::update()
     rt_controllers_wrapper_.update_and_get_used_by_rt_list();
 
   auto ret = controller_interface::return_type::OK;
-  int main_update_rate = 100;
   update_loop_counter_ += 1;
-  update_loop_counter_ %= main_update_rate;
+  update_loop_counter_ %= update_rate_;
 
   for (auto loaded_controller : rt_controller_list) {
     // TODO(v-lopez) we could cache this information
