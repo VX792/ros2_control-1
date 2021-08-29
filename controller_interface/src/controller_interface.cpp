@@ -148,7 +148,7 @@ const rclcpp_lifecycle::State & ControllerInterface::shutdown()
   return lifecycle_state_;
 }
 
-const rclcpp_lifecycle::State & ControllerInterface::get_current_state() const
+const rclcpp_lifecycle::State & ControllerInterface::get_state() const
 {
   return lifecycle_state_;
 }

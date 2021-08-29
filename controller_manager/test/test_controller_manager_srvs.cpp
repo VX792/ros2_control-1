@@ -236,7 +236,7 @@ TEST_F(TestControllerManagerSrvs, reload_controller_libraries_srv) {
 
   ASSERT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED,
-    test_controller->get_current_state().id());
+    test_controller->get_state().id());
   ASSERT_GT(
     test_controller.use_count(),
     1) << "Controller manager should have have a copy of this shared ptr";
@@ -265,7 +265,7 @@ TEST_F(TestControllerManagerSrvs, reload_controller_libraries_srv) {
 
   ASSERT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE,
-    test_controller->get_current_state().id());
+    test_controller->get_state().id());
   ASSERT_GT(
     test_controller.use_count(),
     1) << "Controller manager should have have a copy of this shared ptr";
@@ -297,7 +297,7 @@ TEST_F(TestControllerManagerSrvs, reload_controller_libraries_srv) {
     rclcpp::Duration(0, 0));
   ASSERT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE,
-    test_controller->get_current_state().id());
+    test_controller->get_state().id());
 
   // Failed reload due to active controller
   request->force_kill = false;
@@ -305,7 +305,7 @@ TEST_F(TestControllerManagerSrvs, reload_controller_libraries_srv) {
   ASSERT_FALSE(result->ok) << "Cannot reload if controllers are running";
   ASSERT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE,
-    test_controller->get_current_state().id());
+    test_controller->get_state().id());
   ASSERT_GT(
     test_controller.use_count(),
     1) <<
@@ -349,7 +349,7 @@ TEST_F(TestControllerManagerSrvs, load_controller_srv) {
   EXPECT_EQ(1u, cm_->get_loaded_controllers().size());
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED,
-    cm_->get_loaded_controllers()[0].c->get_current_state().id());
+    cm_->get_loaded_controllers()[0].c->get_state().id());
 }
 
 TEST_F(TestControllerManagerSrvs, unload_controller_srv) {
@@ -400,7 +400,7 @@ TEST_F(TestControllerManagerSrvs, configure_controller_srv) {
   EXPECT_EQ(1u, cm_->get_loaded_controllers().size());
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE,
-    cm_->get_loaded_controllers()[0].c->get_current_state().id());
+    cm_->get_loaded_controllers()[0].c->get_state().id());
 }
 
 TEST_F(TestControllerManagerSrvs, load_configure_controller_srv) {
@@ -425,7 +425,7 @@ TEST_F(TestControllerManagerSrvs, load_configure_controller_srv) {
   EXPECT_EQ(test_controller::TEST_CONTROLLER_NAME, cm_->get_loaded_controllers()[0].info.name);
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE,
-    cm_->get_loaded_controllers()[0].c->get_current_state().id());
+    cm_->get_loaded_controllers()[0].c->get_state().id());
 }
 
 TEST_F(TestControllerManagerSrvs, load_start_controller_srv) {
@@ -450,7 +450,7 @@ TEST_F(TestControllerManagerSrvs, load_start_controller_srv) {
   EXPECT_EQ(test_controller::TEST_CONTROLLER_NAME, cm_->get_loaded_controllers()[0].info.name);
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE,
-    cm_->get_loaded_controllers()[0].c->get_current_state().id());
+    cm_->get_loaded_controllers()[0].c->get_state().id());
 }
 
 TEST_F(TestControllerManagerSrvs, configure_start_controller_srv) {
@@ -478,5 +478,5 @@ TEST_F(TestControllerManagerSrvs, configure_start_controller_srv) {
   EXPECT_EQ(1u, cm_->get_loaded_controllers().size());
   EXPECT_EQ(
     lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE,
-    cm_->get_loaded_controllers()[0].c->get_current_state().id());
+    cm_->get_loaded_controllers()[0].c->get_state().id());
 }

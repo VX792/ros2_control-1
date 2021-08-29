@@ -232,6 +232,10 @@ protected:
     const std::shared_ptr<controller_manager_msgs::srv::UnloadController::Request> request,
     std::shared_ptr<controller_manager_msgs::srv::UnloadController::Response> response);
 
+  //Per controller update rate support
+  int update_loop_counter_ = 0;
+  int update_rate_ = 100;
+
 private:
   std::vector<std::string> get_controller_names();
 
@@ -364,10 +368,6 @@ private:
   };
 
   SwitchParams switch_params_;
-  //Per controller update rate support
-  int update_loop_counter_ = 0;
-  int update_rate_ = 100;
-
 };
 
 }  // namespace controller_manager
