@@ -31,9 +31,7 @@ int main(int argc, char ** argv)
     std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   std::string manager_node_name = "controller_manager";
 
-  auto cm = std::make_shared<controller_manager::ControllerManager>(
-    executor,
-    manager_node_name);
+  auto cm = std::make_shared<controller_manager::ControllerManager>(executor, manager_node_name);
 
   // TODO(anyone): Due to issues with the MutliThreadedExecutor, this control loop does not rely on
   // the executor (see issue #260).
@@ -45,19 +43,19 @@ int main(int argc, char ** argv)
       int update_rate = cm->get_update_rate();
       RCLCPP_INFO(cm->get_logger(), "update rate is %d Hz", update_rate);
 
-      while (rclcpp::ok()) {
-        std::chrono::system_clock::time_point begin = std::chrono::system_clock::now();
-        cm->read();
-        cm->update();
-        cm->write();
-        std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-        std::this_thread::sleep_for(
-          std::max(
-            std::chrono::nanoseconds(0),
-            std::chrono::nanoseconds(1000000000 / update_rate) -
-            std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin)));
-      }
-    });
+    while (rclcpp::ok())
+    {
+      std::chrono::system_clock::time_point begin = std::chrono::system_clock::now();
+      cm->read();
+      cm->update();
+      cm->write();
+      std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+      std::this_thread::sleep_for(std::max(
+        std::chrono::nanoseconds(0),
+        std::chrono::nanoseconds(1000000000 / update_rate) -
+          std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin)));
+    }
+  });
 
   executor->add_node(cm);
   executor->spin();

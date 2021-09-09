@@ -30,7 +30,6 @@
 
 namespace controller_interface
 {
-
 // TODO(karsten1987): Remove clang pragma within Galactic
 #ifdef __clang__
 #pragma clang diagnostic push

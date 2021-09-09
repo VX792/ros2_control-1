@@ -19,6 +19,7 @@ import os
 import subprocess
 import sys
 import time
+import warnings
 
 from controller_manager import configure_controller, list_controllers, \
     load_controller, switch_controllers, unload_controller
@@ -40,7 +41,7 @@ def wait_for_controller_manager(node, controller_manager, timeout_duration):
             return True
 
         node.get_logger().info(
-            'Waiting for {} services'.format(controller_manager),
+            f'Waiting for {controller_manager} services',
             throttle_duration_sec=2)
         time.sleep(0.2)
 
@@ -70,6 +71,9 @@ def main(args=None):
         help='Controller param file to be loaded into controller node before configure',
         required=False)
     parser.add_argument(
+        '--load-only', help='Only load the controller and leave unconfigured.',
+        action='store_true', required=False)
+    parser.add_argument(
         '--stopped', help='Load and configure the controller, however do not start them',
         action='store_true', required=False)
     parser.add_argument(
@@ -93,8 +97,7 @@ def main(args=None):
     controller_manager_timeout = args.controller_manager_timeout
 
     if param_file and not os.path.isfile(param_file):
-        raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), param_file)
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), param_file)
 
     node = Node('spawner_' + controller_name)
     try:
@@ -123,25 +126,26 @@ def main(args=None):
                 return ret.returncode
             node.get_logger().info('Loaded ' + param_file + ' into ' + controller_name)
 
-        ret = configure_controller(node, controller_manager_name, controller_name)
-        if not ret.ok:
-            node.get_logger().info('Failed to configure controller')
-            return 1
-
-        if not args.stopped:
-            ret = switch_controllers(
-                node,
-                controller_manager_name,
-                [],
-                [controller_name],
-                True,
-                True,
-                5.0)
+        if not args.load_only:
+            ret = configure_controller(node, controller_manager_name, controller_name)
             if not ret.ok:
-                node.get_logger().info('Failed to start controller')
+                node.get_logger().info('Failed to configure controller')
                 return 1
 
-            node.get_logger().info('Configured and started ' + controller_name)
+            if not args.stopped:
+                ret = switch_controllers(
+                    node,
+                    controller_manager_name,
+                    [],
+                    [controller_name],
+                    True,
+                    True,
+                    5.0)
+                if not ret.ok:
+                    node.get_logger().info('Failed to start controller')
+                    return 1
+
+                node.get_logger().info('Configured and started ' + controller_name)
 
         if not args.unload_on_kill:
             return 0
@@ -179,4 +183,8 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    warnings.warn(
+        "'spawner.py' is deprecated, please use 'spawner' (without .py extension)",
+        DeprecationWarning)
+    ret = main()
+    sys.exit(ret)

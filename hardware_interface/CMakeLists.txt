@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(hardware_interface)
 
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra)
 endif()
@@ -42,8 +37,6 @@ ament_target_dependencies(
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(hardware_interface PRIVATE "HARDWARE_INTERFACE_BUILDING_DLL")
-# prevent pluginlib from using boost
-target_compile_definitions(hardware_interface PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
 # Fake components
 add_library(
@@ -68,8 +61,6 @@ ament_target_dependencies(
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(fake_components PRIVATE "HARDWARE_INTERFACE_BUILDING_DLL")
-# prevent pluginlib from using boost
-target_compile_definitions(fake_components PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
 pluginlib_export_plugin_description_file(
   hardware_interface fake_components_plugin_description.xml)
@@ -90,6 +81,10 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE
+    ament_cmake_uncrustify
+    ament_cmake_cpplint
+  )
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gmock REQUIRED)

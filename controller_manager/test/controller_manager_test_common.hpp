@@ -30,6 +30,8 @@
 #include "controller_manager_msgs/srv/switch_controller.hpp"
 
 #include "rclcpp/utilities.hpp"
+
+#include "ros2_control_test_assets/descriptions.hpp"
 #include "test_controller/test_controller.hpp"
 #include "test_controller_failed_init/test_controller_failed_init.hpp"
 
@@ -145,45 +147,38 @@ public:
 class ControllerManagerFixture : public ::testing::Test
 {
 public:
-  static void SetUpTestCase()
-  {
-    rclcpp::init(0, nullptr);
-  }
+  static void SetUpTestCase() { rclcpp::init(0, nullptr); }
 
-  static void TearDownTestCase()
-  {
-    rclcpp::shutdown();
-  }
+  static void TearDownTestCase() { rclcpp::shutdown(); }
 
   void SetUp()
   {
     executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
     cm_ = std::make_shared<controller_manager::ControllerManager>(
-      std::make_unique<hardware_interface::ResourceManager>(controller_manager_test::urdf),
+      std::make_unique<hardware_interface::ResourceManager>(
+        ros2_control_test_assets::minimal_robot_urdf),
       executor_, "test_controller_manager");
     run_updater_ = false;
   }
 
-  void TearDown()
-  {
-    stopCmUpdater();
-  }
+  void TearDown() { stopCmUpdater(); }
 
   void startCmUpdater()
   {
     run_updater_ = true;
-    updater_ = std::thread(
-      [&](void) -> void {
-        while (run_updater_) {
-          cm_->update();
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-      });
+    updater_ = std::thread([&](void) -> void {
+      while (run_updater_)
+      {
+        cm_->update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+    });
   }
 
   void stopCmUpdater()
   {
-    if (run_updater_) {
+    if (run_updater_)
+    {
       run_updater_ = false;
       updater_.join();
     }
@@ -199,16 +194,12 @@ public:
 class ControllerManagerRunner
 {
 public:
-  explicit ControllerManagerRunner(ControllerManagerFixture * cmf)
-  : cmf_(cmf)
+  explicit ControllerManagerRunner(ControllerManagerFixture * cmf) : cmf_(cmf)
   {
     cmf_->startCmUpdater();
   }
 
-  ~ControllerManagerRunner()
-  {
-    cmf_->stopCmUpdater();
-  }
+  ~ControllerManagerRunner() { cmf_->stopCmUpdater(); }
 
   ControllerManagerFixture * cmf_;
 };

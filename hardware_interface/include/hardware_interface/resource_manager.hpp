@@ -21,9 +21,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/loaned_command_interface.hpp"
 #include "hardware_interface/loaned_state_interface.hpp"
-#include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/types/hardware_interface_status_values.hpp"
 
 namespace hardware_interface
@@ -52,8 +52,7 @@ public:
    * \param[in] validate_interfaces boolean argument indicating whether the exported
    * interfaces ought to be validated. Defaults to true.
    */
-  explicit ResourceManager(
-    const std::string & urdf, bool validate_interfaces = true);
+  explicit ResourceManager(const std::string & urdf, bool validate_interfaces = true);
 
   ResourceManager(const ResourceManager &) = delete;
 
@@ -216,7 +215,7 @@ public:
   /**
    * Hardware components are asked to perform the command interface mode switching.
    *
-   * \note this is inteded for mode-switching when a hardware interface needs to change
+   * \note this is intended for mode-switching when a hardware interface needs to change
    * control mode depending on which command interface is claimed.
    * \note this is for realtime switching of the command interface.
    * \param[in] start_interfaces vector of string identifiers for the command interfaces starting.

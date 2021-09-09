@@ -21,13 +21,18 @@
 
 namespace test_controller_with_interfaces
 {
-
 TestControllerWithInterfaces::TestControllerWithInterfaces()
 : controller_interface::ControllerInterface()
-{}
+{
+}
 
-controller_interface::return_type
-TestControllerWithInterfaces::update()
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+TestControllerWithInterfaces::on_init()
+{
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+controller_interface::return_type TestControllerWithInterfaces::update()
 {
   return controller_interface::return_type::OK;
 }
@@ -39,8 +44,7 @@ TestControllerWithInterfaces::on_configure(const rclcpp_lifecycle::State & /*pre
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-TestControllerWithInterfaces::on_cleanup(
-  const rclcpp_lifecycle::State & /*previous_state*/)
+TestControllerWithInterfaces::on_cleanup(const rclcpp_lifecycle::State & /*previous_state*/)
 {
   return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
