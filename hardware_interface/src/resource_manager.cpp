@@ -529,7 +529,7 @@ public:
     for (auto & interface : interfaces)
     {
       auto key = interface.get_name();
-      command_interface_map_.emplace(std::make_pair(key, std::move(interface)));
+      command_interface_map_.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(std::move(interface)));
       claimed_command_interface_map_.emplace(std::make_pair(key, false));
       interface_names.push_back(key);
     }
@@ -1427,6 +1427,19 @@ void ResourceManager::activate_all_components()
     set_component_state(component.get_name(), active_state);
   }
   for (auto & component : resource_storage_->systems_)
+  {
+    set_component_state(component.get_name(), active_state);
+  }
+
+  for (auto & component : resource_storage_->async_actuators_)
+  {
+    set_component_state(component.get_name(), active_state);
+  }
+  for (auto & component : resource_storage_->async_sensors_)
+  {
+    set_component_state(component.get_name(), active_state);
+  }
+  for (auto & component : resource_storage_->async_systems_)
   {
     set_component_state(component.get_name(), active_state);
   }

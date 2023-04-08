@@ -80,8 +80,11 @@ public:
 
         if constexpr (!std::is_same_v<hardware_interface::Sensor, HardwareT>)
         {
+          async_component_.write(clock_interface_->get_clock()->now(), measured_period);
           // write
         }
+        async_component_.read(clock_interface_->get_clock()->now(), measured_period);
+
         // read
       }
       next_iteration_time += period;

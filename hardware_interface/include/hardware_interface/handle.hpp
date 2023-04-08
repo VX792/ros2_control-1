@@ -17,12 +17,15 @@
 
 #include <string>
 #include <utility>
+#include <atomic>
+#include <thread>
 
 #include "hardware_interface/macros.hpp"
 #include "hardware_interface/visibility_control.h"
 
 namespace hardware_interface
 {
+
 /// A handle used to get and set a value on a given interface.
 class ReadOnlyHandle
 {
@@ -70,7 +73,7 @@ public:
 
   const std::string & get_prefix_name() const { return prefix_name_; }
 
-  double get_value() const
+  virtual double get_value()
   {
     THROW_ON_NULLPTR(value_ptr_);
     return *value_ptr_;
@@ -96,21 +99,93 @@ public:
 
   explicit ReadWriteHandle(const char * interface_name) : ReadOnlyHandle(interface_name) {}
 
-  ReadWriteHandle(const ReadWriteHandle & other) = default;
+  ReadWriteHandle(const ReadWriteHandle & other) 
+    : ReadOnlyHandle(other)
+    , previous_value_(other.previous_value_)
+    , locked_(bool(other.locked_))
+    , active_worker_(std::thread::id(other.active_worker_)) {};
 
-  ReadWriteHandle(ReadWriteHandle && other) = default;
+  ReadWriteHandle(ReadWriteHandle && other) 
+    : ReadOnlyHandle(std::move(other))
+    , previous_value_(std::move(other.previous_value_))
+    , locked_(bool(other.locked_))
+    , active_worker_(std::thread::id(other.active_worker_)) 
+  {};
 
-  ReadWriteHandle & operator=(const ReadWriteHandle & other) = default;
+  ReadWriteHandle & operator=(const ReadWriteHandle & other)
+  { 
+    ReadOnlyHandle::operator=(other);
+    previous_value_ = other.previous_value_;
+    locked_ = bool(other.locked_);
+    active_worker_ = std::thread::id(other.active_worker_);
 
-  ReadWriteHandle & operator=(ReadWriteHandle && other) = default;
+    return *this;
+  };
+
+  ReadWriteHandle & operator=(ReadWriteHandle && other) 
+  { 
+    ReadOnlyHandle::operator=(std::move(other));
+    previous_value_ = std::move(other.previous_value_);
+    locked_ = bool(other.locked_);
+    active_worker_ = std::thread::id(other.active_worker_);
+    
+    return *this;
+  };
 
   virtual ~ReadWriteHandle() = default;
 
+  virtual double get_value() override
+  {
+    if (locked_.load(std::memory_order_acquire)) 
+    {
+      THROW_ON_NULLPTR(value_ptr_);
+      previous_value_ = *value_ptr_;
+      return *value_ptr_;
+    }
+
+    return previous_value_;
+  }
+
   void set_value(double value)
   {
-    THROW_ON_NULLPTR(this->value_ptr_);
-    *this->value_ptr_ = value;
+    if (locked_.load(std::memory_order_acquire)) 
+    {
+      THROW_ON_NULLPTR(this->value_ptr_);
+      *this->value_ptr_ = value;
+    }
   }
+
+private:
+  double previous_value_{0};
+  std::atomic<bool> locked_{false};
+  std::atomic<std::thread::id> active_worker_;
+
+  friend class CommandInterfaceLock;
+};
+
+class CommandInterfaceLock
+{
+public:
+  CommandInterfaceLock(ReadWriteHandle* handle) : handle_(handle) 
+  {
+    if (!handle_->locked_.load(std::memory_order_acquire))
+    {
+      handle_->locked_.store(true, std::memory_order_release);
+      handle_->active_worker_.store(std::this_thread::get_id(), std::memory_order_relaxed);
+    }
+  }
+  CommandInterfaceLock(const CommandInterfaceLock& other) = delete;
+  CommandInterfaceLock(CommandInterfaceLock&& other) = delete;
+  
+  ~CommandInterfaceLock()
+  {
+    if (handle_->locked_.load(std::memory_order_acquire) && std::this_thread::get_id() 
+        == handle_->active_worker_.load(std::memory_order_relaxed))
+    {
+      handle_->locked_.store(false, std::memory_order_release);
+    }
+  }
+  ReadWriteHandle* handle_;
 };
 
 class StateInterface : public ReadOnlyHandle

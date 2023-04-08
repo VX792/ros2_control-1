@@ -227,6 +227,9 @@ void ControllerManager::init_resource_manager(const std::string & robot_descript
   }
   // if both parameter are empty or non-existing preserve behavior where all components are
   // activated per default
+
+  resource_manager_->activate_all_components();
+
   if (configure_components_on_start.empty() && activate_components_on_start.empty())
   {
     RCLCPP_WARN_STREAM(
