@@ -529,7 +529,9 @@ public:
     for (auto & interface : interfaces)
     {
       auto key = interface.get_name();
-      command_interface_map_.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(std::move(interface)));
+      command_interface_map_.emplace(
+        std::piecewise_construct, std::forward_as_tuple(key),
+        std::forward_as_tuple(std::move(interface)));
       claimed_command_interface_map_.emplace(std::make_pair(key, false));
       interface_names.push_back(key);
     }
