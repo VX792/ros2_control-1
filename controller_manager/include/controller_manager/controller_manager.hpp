@@ -311,7 +311,6 @@ protected:
   std::vector<std::vector<std::string>> chained_controllers_configuration_;
 
   std::unique_ptr<hardware_interface::ResourceManager> resource_manager_;
-
 private:
   std::vector<std::string> get_controller_names();
   std::pair<std::string, std::string> split_command_interface(
@@ -384,6 +383,7 @@ private:
     const ControllersListIterator controller_it);
 
   void controller_activity_diagnostic_callback(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  
   diagnostic_updater::Updater diagnostics_updater_;
 
   std::shared_ptr<rclcpp::Executor> executor_;

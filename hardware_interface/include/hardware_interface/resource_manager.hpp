@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "handle.hpp"
 #include "hardware_interface/actuator.hpp"
 #include "hardware_interface/hardware_component_info.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -192,6 +193,7 @@ public:
    */
   std::vector<std::string> get_cached_controllers_to_hardware(const std::string & hardware_name);
 
+  bool controller_uses_async_hw(const std::string & controller_name);
   /// Checks whether a command interface is already claimed.
   /**
    * Any command interface can only be claimed by a single instance.
@@ -374,6 +376,11 @@ public:
    * It is realtime-safe if used hadware interfaces are implemented adequately.
    */
   HardwareReadWriteStatus write(const rclcpp::Time & time, const rclcpp::Duration & period);
+
+
+  void lock_interfaces();
+
+  void release_interfaces();
 
   /// Activates all available hardware components in the system.
   /**

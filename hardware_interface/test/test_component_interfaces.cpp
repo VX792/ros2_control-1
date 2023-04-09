@@ -993,3 +993,17 @@ TEST(TestComponentInterfaces, dummy_system_write_error_behavior)
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
 }
+
+TEST(TestComponentInterfaces, import_async_command_interfaces_good)
+{
+  hardware_interface::System system_hw(std::make_unique<test_components::DummySystem>());
+
+  hardware_interface::HardwareInfo mock_hw_info{};
+  mock_hw_info.is_async = true;
+  auto state = system_hw.initialize(mock_hw_info);
+  EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
+  EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
+
+  auto command_interfaces = system_hw.export_command_interfaces();
+  ASSERT_EQ(6u, command_interfaces.size());
+}

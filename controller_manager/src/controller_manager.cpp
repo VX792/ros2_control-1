@@ -1778,6 +1778,11 @@ controller_interface::return_type ControllerManager::update(
 
       if (controller_go)
       {
+        if (resource_manager_->controller_uses_async_hw(loaded_controller.info.name))
+        {
+          resource_manager_->lock_interfaces();
+        }
+        
         auto controller_ret = loaded_controller.c->update(
           time, (controller_update_rate != update_rate_ && controller_update_rate != 0)
                   ? rclcpp::Duration::from_seconds(1.0 / controller_update_rate)
@@ -1786,6 +1791,11 @@ controller_interface::return_type ControllerManager::update(
         if (controller_ret != controller_interface::return_type::OK)
         {
           ret = controller_ret;
+        }
+
+        if (resource_manager_->controller_uses_async_hw(loaded_controller.info.name))
+        {
+          resource_manager_->release_interfaces();
         }
       }
     }

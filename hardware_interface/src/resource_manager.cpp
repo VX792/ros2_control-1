@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <set>
 
 #include "hardware_interface/actuator.hpp"
 #include "hardware_interface/actuator_interface.hpp"
@@ -85,12 +86,11 @@ public:
     sensor_loader_(pkg_name, sensor_interface_name),
     system_loader_(pkg_name, system_interface_name),
     clock_interface_(clock_interface),
-    cm_update_rate_(update_rate)
+    cm_update_rate_(update_rate),
+    command_interface_lock_(std::make_unique<CommandInterfaceLock>())
   {
   }
 
-  rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface_;
-  unsigned int cm_update_rate_;
 
   template <class HardwareT, class HardwareInterfaceT>
   void load_hardware(
@@ -112,6 +112,7 @@ public:
     component_info.is_async = hardware_info.is_async;
 
     hardware_info_map_.insert(std::make_pair(component_info.name, component_info));
+
     hardware_used_by_controllers_.insert(
       std::make_pair(component_info.name, std::vector<std::string>()));
   }
@@ -211,7 +212,7 @@ public:
         {
           async_actuator_threads_.emplace(
             std::piecewise_construct, std::forward_as_tuple(hardware.get_name()),
-            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_));
+            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_, command_interface_lock_.get()));
         }
       }
 
@@ -221,7 +222,7 @@ public:
         {
           async_system_threads_.emplace(
             std::piecewise_construct, std::forward_as_tuple(hardware.get_name()),
-            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_));
+            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_, command_interface_lock_.get()));
         }
       }
 
@@ -231,7 +232,7 @@ public:
         {
           async_sensor_threads_.emplace(
             std::piecewise_construct, std::forward_as_tuple(hardware.get_name()),
-            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_));
+            std::forward_as_tuple(hardware, cm_update_rate_, clock_interface_, command_interface_lock_.get()));
         }
       }
     }
@@ -495,6 +496,10 @@ public:
     interface_names.reserve(interfaces.size());
     for (auto & interface : interfaces)
     {
+      if (hardware_info_map_[hardware.get_name()].is_async)
+      {        
+        interface.set_interface_lock(command_interface_lock_.get());
+      }
       auto key = interface.get_name();
       state_interface_map_.emplace(std::make_pair(key, std::move(interface)));
       interface_names.push_back(key);
@@ -508,6 +513,13 @@ public:
   void import_command_interfaces(HardwareT & hardware)
   {
     auto interfaces = hardware.export_command_interfaces();
+    if (hardware_info_map_[hardware.get_name()].is_async)
+    {
+      for (auto& interface : interfaces)
+      {
+        interface.set_interface_lock(command_interface_lock_.get());
+      }
+    }
     hardware_info_map_[hardware.get_name()].command_interfaces = add_command_interfaces(interfaces);
   }
 
@@ -529,9 +541,7 @@ public:
     for (auto & interface : interfaces)
     {
       auto key = interface.get_name();
-      command_interface_map_.emplace(
-        std::piecewise_construct, std::forward_as_tuple(key),
-        std::forward_as_tuple(std::move(interface)));
+      command_interface_map_.emplace(std::make_pair(key, std::move(interface)));
       claimed_command_interface_map_.emplace(std::make_pair(key, false));
       interface_names.push_back(key);
     }
@@ -581,6 +591,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       load_and_init_actuators(async_actuators_);
     }
     else
@@ -601,6 +612,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       load_and_init_sensors(async_sensors_);
     }
     else
@@ -622,6 +634,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       load_and_init_systems(async_systems_);
     }
     else
@@ -643,6 +656,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       init_actuators(async_actuators_);
     }
     else
@@ -663,6 +677,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       init_sensors(async_sensors_);
     }
     else
@@ -684,6 +699,7 @@ public:
 
     if (hardware_info.is_async)
     {
+      async_component_names_.insert(hardware_info.name);
       init_systems(async_systems_);
     }
     else
@@ -725,13 +741,23 @@ public:
   /// List of all claimed command interfaces
   std::unordered_map<std::string, bool> claimed_command_interface_map_;
 
-  /// List of async components by type
+  /// List of thread objects for async components by type
   std::unordered_map<std::string, AsyncComponentThread<hardware_interface::Actuator>>
     async_actuator_threads_;
   std::unordered_map<std::string, AsyncComponentThread<hardware_interface::System>>
     async_system_threads_;
   std::unordered_map<std::string, AsyncComponentThread<hardware_interface::Sensor>>
     async_sensor_threads_;
+
+  /// List of async components by name
+  std::set<std::string> async_component_names_;
+  
+  // Global lock for interfaces used by async controllers / components
+  std::unique_ptr<hardware_interface::CommandInterfaceLock> command_interface_lock_;
+
+
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface_;
+  unsigned int cm_update_rate_;
 };
 
 ResourceManager::ResourceManager(
@@ -951,6 +977,26 @@ std::vector<std::string> ResourceManager::get_cached_controllers_to_hardware(
   const std::string & hardware_name)
 {
   return resource_storage_->hardware_used_by_controllers_[hardware_name];
+}
+
+bool ResourceManager::controller_uses_async_hw(const std::string & controller_name)
+{
+  for (auto component_name : resource_storage_->async_component_names_)
+  {
+    auto component_found_it = resource_storage_->hardware_used_by_controllers_.find(component_name);
+    if (component_found_it != resource_storage_->hardware_used_by_controllers_.end())
+    {
+      for (auto mapped_controller_name : component_found_it->second)
+      {
+        if (controller_name == mapped_controller_name)
+        {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 // CM API: Called in "update"-thread
@@ -1303,6 +1349,16 @@ HardwareReadWriteStatus ResourceManager::write(
   write_components(resource_storage_->systems_);
 
   return read_write_status;
+}
+
+void ResourceManager::lock_interfaces()
+{
+  return resource_storage_->command_interface_lock_->lock();
+}
+
+void ResourceManager::release_interfaces()
+{
+  return resource_storage_->command_interface_lock_->release();
 }
 
 // BEGIN: "used only in tests and locally"

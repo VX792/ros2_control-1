@@ -67,6 +67,8 @@ public:
 
   double get_value() const { return command_interface_.get_value(); }
 
+  void set_interface_lock(CommandInterfaceLock* lock) { return command_interface_.set_interface_lock(lock); }
+
 protected:
   CommandInterface & command_interface_;
   Deleter deleter_;

@@ -1,4 +1,4 @@
-// Copyright 2023 Open Source Robotics Foundation, Inc.
+// Copyright 2023 ros2 control development team.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <thread>
 #include <type_traits>
 
+#include "hardware_interface/handle.hpp"
 #include "hardware_interface/actuator.hpp"
 #include "hardware_interface/sensor.hpp"
 #include "hardware_interface/system.hpp"
@@ -42,13 +43,17 @@ public:
 
   explicit AsyncComponentThread(
     HardwareT & component, unsigned int update_rate,
-    rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface)
-  : async_component_(component), cm_update_rate_(update_rate), clock_interface_(clock_interface)
+    rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface,
+    CommandInterfaceLock* command_interface_lock)
+  : async_component_(component)
+  , cm_update_rate_(update_rate)
+  , clock_interface_(clock_interface)
+  , command_interface_lock_(command_interface_lock)
   {
   }
 
   AsyncComponentThread(const AsyncComponentThread & t) = delete;
-  AsyncComponentThread(AsyncComponentThread && t) = default;
+  AsyncComponentThread(AsyncComponentThread && t) = delete;
 
   ~AsyncComponentThread()
   {
@@ -74,6 +79,8 @@ public:
 
       if (async_component_.get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
+        command_interface_lock_->lock();
+        
         auto current_time = clock_interface_->get_clock()->now();
         auto measured_period = current_time - previous_time;
         previous_time = current_time;
@@ -81,11 +88,10 @@ public:
         if constexpr (!std::is_same_v<hardware_interface::Sensor, HardwareT>)
         {
           async_component_.write(clock_interface_->get_clock()->now(), measured_period);
-          // write
         }
         async_component_.read(clock_interface_->get_clock()->now(), measured_period);
 
-        // read
+        command_interface_lock_->release();
       }
       next_iteration_time += period;
       std::this_thread::sleep_until(next_iteration_time);
@@ -96,9 +102,10 @@ private:
   std::atomic<bool> terminated_{false};
   HardwareT & async_component_;
   std::thread write_and_read_{};
-
-  rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface_;
+  
   unsigned int cm_update_rate_;
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface_;
+  CommandInterfaceLock* command_interface_lock_;
 };
 
 };  // namespace hardware_interface
