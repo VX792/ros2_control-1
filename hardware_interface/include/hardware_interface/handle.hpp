@@ -40,17 +40,27 @@ public:
         {
             is_locked_.store(true, std::memory_order_release);
             active_worker_.store(std::this_thread::get_id(), std::memory_order_relaxed);
+            std::cout << "LOCK SUCCESSFUL FROM ID:" << active_worker_ << std::endl;
+
+        } else {
+            std::cout << "LOCK FAILED FROM" << std::this_thread::get_id() << std::endl;
         }
     }
 
     void release()
     {
-        if (
-            is_locked_.load(std::memory_order_acquire) &&
-            std::this_thread::get_id() == active_worker_.load(std::memory_order_relaxed))
+        if (owns_lock())
         {
+            std::cout << "RELEASE SUCCESSFUL FROM ID:" << std::this_thread::get_id() << std::endl;
             is_locked_.store(false, std::memory_order_release);
+        } else {
+            std::cout << "RELEASE UNSUCCESSFUL FROM ID:" << std::this_thread::get_id() << ", LOCK OWNED BY: " << active_worker_ << std::endl;
         }
+    }
+
+    bool owns_lock() {
+      return is_locked_.load(std::memory_order_relaxed) 
+              && std::this_thread::get_id() == active_worker_.load(std::memory_order_relaxed);
     }
     ~CommandInterfaceLock() = default;
 
@@ -123,7 +133,6 @@ public:
         std::cout << "GET VALUE: NULL OR LOCK OWNED ID: " << interface_lock_ptr_->active_worker_ << std::endl;
       } else {
         std::cout << "GET VALUE: NULL OR LOCK OWNED ID: NO OWNER" << std::endl;
-
       }
       THROW_ON_NULLPTR(value_ptr_);
       previous_value_ = *value_ptr_;
