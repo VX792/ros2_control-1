@@ -38,12 +38,12 @@ public:
     {
         if (!is_locked_.load(std::memory_order_acquire))
         {
-            is_locked_.store(true, std::memory_order_release);
+            is_locked_.store(true, std::memory_order_relaxed);
             active_worker_.store(std::this_thread::get_id(), std::memory_order_relaxed);
-            std::cout << "LOCK SUCCESSFUL FROM ID:" << active_worker_ << std::endl;
+            std::cout << "[................] [Handle]: LOCK SUCCESSFUL FROM ID: " << active_worker_ << std::endl;
 
         } else {
-            std::cout << "LOCK FAILED FROM" << std::this_thread::get_id() << std::endl;
+            std::cout << "[................] [Handle]: LOCK FAILED FROM ID: " << std::this_thread::get_id() << std::endl;
         }
     }
 
@@ -51,10 +51,10 @@ public:
     {
         if (owns_lock())
         {
-            std::cout << "RELEASE SUCCESSFUL FROM ID:" << std::this_thread::get_id() << std::endl;
+            std::cout << "[................] [Handle]: RELEASE SUCCESSFUL FROM ID: " << std::this_thread::get_id() << std::endl;
             is_locked_.store(false, std::memory_order_release);
         } else {
-            std::cout << "RELEASE UNSUCCESSFUL FROM ID:" << std::this_thread::get_id() << ", LOCK OWNED BY: " << active_worker_ << std::endl;
+            std::cout << "[................] [Handle]: RELEASE UNSUCCESSFUL FROM ID: " << std::this_thread::get_id() << ", LOCK OWNED BY: " << active_worker_ << std::endl;
         }
     }
 
@@ -126,13 +126,13 @@ public:
   double get_value()
   {
     if (interface_lock_ptr_ == nullptr 
-        || interface_lock_ptr_->is_locked_.load(std::memory_order_relaxed))
+        || interface_lock_ptr_->owns_lock())
     {
       if (interface_lock_ptr_ != nullptr && interface_lock_ptr_->is_locked_.load(std::memory_order_relaxed))
       {
-        std::cout << "GET VALUE: NULL OR LOCK OWNED ID: " << interface_lock_ptr_->active_worker_ << std::endl;
+        std::cout << "[................] [Handle]: GET VALUE: LOCK OWNED BY ID: " << interface_lock_ptr_->active_worker_ << std::endl;
       } else {
-        std::cout << "GET VALUE: NULL OR LOCK OWNED ID: NO OWNER" << std::endl;
+        std::cout << "[................] [Handle]: GET VALUE: LOCK OWNED BY ID: NOT ASYNC" << std::endl;
       }
       THROW_ON_NULLPTR(value_ptr_);
       previous_value_ = *value_ptr_;
@@ -183,17 +183,21 @@ public:
   void set_value(double value)
   {
     if (interface_lock_ptr_ == nullptr
-        || interface_lock_ptr_->is_locked_.load(std::memory_order_relaxed))
+        || interface_lock_ptr_->owns_lock())
     {
       if (interface_lock_ptr_ != nullptr && interface_lock_ptr_->is_locked_.load(std::memory_order_relaxed))
       {
-        std::cout << "SET VALUE: NULL OR LOCK OWNED ID: " << interface_lock_ptr_->active_worker_ << std::endl;
+        std::cout << "[................] [Handle]: SET VALUE: LOCK OWNED ID: " << interface_lock_ptr_->active_worker_ << std::endl;
       } else {
-        std::cout << "SET VALUE: NULL OR LOCK OWNED ID: NO OWNER" << std::endl;
+        std::cout << "[................] [Handle]: SET VALUE: LOCK OWNED BY ID: NOT ASYNC" << std::endl;
       }
       THROW_ON_NULLPTR(this->value_ptr_);
       *this->value_ptr_ = value;
     }
+    else
+    {
+      *this->value_ptr_ = previous_value_;
+    }    
   }
 };
 

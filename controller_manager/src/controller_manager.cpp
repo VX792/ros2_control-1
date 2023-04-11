@@ -1795,7 +1795,7 @@ controller_interface::return_type ControllerManager::update(
 
         if (resource_manager_->controller_uses_async_hw(loaded_controller.info.name))
         {
-          // resource_manager_->release_interfaces();
+          resource_manager_->release_interfaces();
         }
       }
     }
